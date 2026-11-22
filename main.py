@@ -43,7 +43,8 @@ def main(args):
         extras = merge_extras([parse_extras(f) for f in BASE_DIR.glob('**/*.abcddb')])
         print(f'Done: extra data for {len(extras)} people.')
         export_vcf(cs, OUT_DIR / 'dedupe', extras=extras, single_file='contacts-all.vcf',
-                   max_photo_px=args.photo_max_px, photo_quality=args.photo_quality)
+                   max_photo_px=args.photo_max_px, photo_quality=args.photo_quality,
+                   country_code=args.phone_country_code)
     else:
         ps = load_people(BASE_DIR)
         ims = load_image_files(BASE_DIR)
@@ -58,8 +59,9 @@ def main(args):
         print('START: extra fields & photos for VCF export')
         extras = merge_extras([parse_extras(f) for f in BASE_DIR.glob('**/*.abcddb')])
         print(f'Done: extra data for {len(extras)} people.')
-        export_vcf(cs, OUT_DIR / 'vcf', VCF_MAX_CONTACTS_PER_FILE, extras,
-                   max_photo_px=args.photo_max_px, photo_quality=args.photo_quality)
+        export_vcf(cs, OUT_DIR / 'vcf', args.contacts_per_file, extras,
+                   max_photo_px=args.photo_max_px, photo_quality=args.photo_quality,
+                   country_code=args.phone_country_code)
 
     if args.shrink_abbu:
         shrink_abbu(BASE_DIR, OUT_DIR / f'{BASE_DIR.stem}-small.abbu', args.photo_max_px or DEFAULT_MAX_PX, args.photo_quality)
@@ -509,6 +511,22 @@ def actually_copy_and_rename_ORPHANED_image_files(ims, outdir):
 
 
 
+def positive_int(s):
+    n = int(s)
+    if n < 1:
+        raise argparse.ArgumentTypeError('must be at least 1')
+    return n
+
+
+def country_code_arg(s):
+    s = s.strip().lstrip('+')
+    if s.lower() in ('', 'none', 'off'):
+        return ''
+    if not s.isdigit():
+        raise argparse.ArgumentTypeError("must be a country calling code like 1 or 44, or 'none'")
+    return s
+
+
 def parse_args():
     ap = argparse.ArgumentParser(description='Convert a Mac Contacts archive (.abbu in in/) into JSON, images and .vcf files in out/. See README.md.')
     ap.add_argument('--dedupe-only', action='store_true',
@@ -517,6 +535,11 @@ def parse_args():
                     help='Also write out/<name>-small.abbu: a copy of the archive with every contact photo shrunk (no contacts merged or removed).')
     ap.add_argument('--photo-max-px', type=int, default=DEFAULT_MAX_PX, metavar='N',
                     help=f'Shrink photos so neither side exceeds N pixels (default {DEFAULT_MAX_PX}; 0 = keep original size in the .vcf files).')
+    ap.add_argument('--contacts-per-file', type=positive_int, default=VCF_MAX_CONTACTS_PER_FILE, metavar='N',
+                    help=f'Put at most N contacts in each .vcf in out/vcf/ (default {VCF_MAX_CONTACTS_PER_FILE}). Ignored by --dedupe-only, which writes a single file.')
+    ap.add_argument('--phone-country-code', type=country_code_arg, default='1', metavar='CC',
+                    help="Add +CC to phone numbers in the .vcf files that lack a country code, so incoming calls match "
+                         "(default 1: 10-digit US/Canada numbers become +1XXXXXXXXXX). 'none' leaves numbers as they are.")
     ap.add_argument('--photo-quality', type=int, default=DEFAULT_QUALITY, metavar='Q',
                     help=f'JPEG quality 1-100 for shrunken photos (default {DEFAULT_QUALITY}).')
     return ap.parse_args()

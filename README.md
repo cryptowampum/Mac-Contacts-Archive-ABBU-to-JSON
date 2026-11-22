@@ -1,8 +1,12 @@
+# Mac Contacts Archive (ABBU file) to JSON and VCF
 
-# Mac Contacts Archive (ABBU file) to JSON
+This python script converts an Apple "Contacts Archive" (eg, `My Contacts.abbu`) into:
 
-This python script converts a Apple "Contacts Archive" (eg, `My Contacts.abbu`) into a nice JSON format.
-It also extracts images stored in the .abbu file.
+- a nice JSON file of your contacts,
+- the contact images stored in the .abbu file, and
+- alphabetized, de-duplicated `.vcf` (vCard) files with the photos embedded (shrunk to a sensible size) and phone numbers given a `+1` country code, ready to import into Contacts or your phone.
+
+It can also write a copy of the `.abbu` itself with smaller photos.
 
 # Motivation
 
@@ -37,8 +41,28 @@ I wrote this Python program that extends ^-- that solution:
 
 # Usage
 
-Put a .abbu file in the `in/` directory and run this script.
-This script parses the contacts and images in the .abbu file,
+**Requirements:** Python 3 (standard library only) on a Mac. The script needs the `file` command, and uses macOS's built-in `sips` to shrink photos (without `sips` everything else works, but photos aren't shrunk).
+
+**Quick start:** put exactly one `.abbu` file in the `in/` directory and run:
+
+    python3 main.py
+
+Your original `.abbu` is only ever read, never modified.
+
+**Options** (all optional; details in the sections below):
+
+| Flag | Default | What it does |
+|---|---|---|
+| `--photo-max-px N` | 512 | Shrink `.vcf` photos so neither side exceeds N pixels. `0` = keep full size. |
+| `--photo-quality Q` | 80 | JPEG quality (1-100) for shrunken photos. |
+| `--phone-country-code CC` | 1 | Add `+CC` to phone numbers that lack a country code. `none` = leave numbers as stored. |
+| `--contacts-per-file N` | 500 | Maximum contacts in each `.vcf` in `out/vcf/`. |
+| `--dedupe-only` | off | Write one sorted, de-duplicated `out/dedupe/contacts-all.vcf` instead of everything else. |
+| `--shrink-abbu` | off | Also write `out/<name>-small.abbu`, a copy of the archive with smaller photos. |
+
+`python3 main.py --help` lists them too.
+
+The script parses the contacts and images in the .abbu file,
 and creates these kinds of outputs in the `out/` directory:
 
 1. `contacts.json` contains the contacts, formatted nicely:
@@ -97,7 +121,9 @@ and creates these kinds of outputs in the `out/` directory:
 3. The `ims/orphans/` directory contains copies of images that were found in the abbu file,
     but whose filenames (UIDs) don't map to any UID of any contact.
 
-4. The `vcf/` directory contains the contacts as vCard (`.vcf`) files: alphabetized, de-duplicated (cards with the same name and a shared email or phone are merged), at most 500 contacts per file, with photos embedded.
+4. The `vcf/` directory contains the contacts as vCard (`.vcf`) files: alphabetized by last name, then first name; de-duplicated (cards with the same name and a shared email or phone are merged); at most 500 contacts per file (`--contacts-per-file`); with photos embedded and `+1` added to phone numbers. Contacts with no name and no organization are skipped. Besides names, phones, emails, URLs and addresses, the cards include nickname, job title, department, birthday, notes, social profiles, instant-messaging addresses, related names and other dates.
+
+5. With `--dedupe-only` you get `dedupe/contacts-all.vcf` instead of items 1-4, and with `--shrink-abbu` you also get `<name>-small.abbu` (see below).
 
 ## Smaller photos
 
@@ -112,6 +138,18 @@ already-tiny photos stay a bit over 512px. This uses macOS's built-in `sips`; on
     python3 main.py --photo-max-px 0       # don't shrink the photos in the .vcf files
 
 (`--photo-quality Q` sets the JPEG quality, 1-100, default 80.)
+
+## Phone numbers and country codes
+
+Most numbers in an archive are stored without a country code (`(503) 318-2547`, `4064589401`, `720.480.5263`), so the phone may not match them against incoming calls. In the `.vcf` files, plain 10-digit US/Canada numbers (and 11-digit ones starting with `1`) are written as `+1XXXXXXXXXX`. A trailing extension (`x225`, `;702`) is kept. Left unchanged rather than guessed at: numbers already starting with `+`, 7-digit local numbers, short codes like `911`, and anything that isn't a valid 10-digit US/Canada number (e.g. foreign numbers stored without a `+`).
+
+- `--phone-country-code CC` uses a different country code instead of `1`. For codes other than `1` only numbers that already start with that code get a `+` added.
+- `--phone-country-code none` leaves numbers exactly as stored.
+- `contacts.json` and the `--shrink-abbu` copy keep the original numbers; only the `.vcf` output is changed.
+
+## Contacts per file
+
+The `.vcf` files in `vcf/` hold at most 500 contacts each. Change that with `--contacts-per-file N`, e.g. `python3 main.py --contacts-per-file 200`. (`--dedupe-only` always writes a single file.)
 
 ## Options for a clean archive
 
@@ -153,7 +191,7 @@ An Apple "Contacts Archive" is a directory like `foo.abbu`. I think the `ab` sta
     - Importantly, not all contacts in the db have a .abcdp file. So if you simply use `plutil` to extract the `.abcdp` files, like [this answer](https://apple.stackexchange.com/a/223875/145895) says, you'll miss many contacts!
 
 
-3. Images are stored in `foo.abbu/Images/`, as files with or without file extensions, named after their UID in the SQLite db.
+3. Images. In older archives they are files in `foo.abbu/Images/`, with or without file extensions, named after their UID in the SQLite db. In newer archives (the ones with `Sources/`) the photos live in the SQLite dbs themselves: columns `ZIMAGEDATA` (full image, with a crop rectangle in `ZCROPRECT`) and `ZTHUMBNAILIMAGEDATA` (the small display copy) of `ZABCDRECORD`. Each holds either the image bytes inline (first byte `0x01`) or the UUID of a file in `.AddressBook-v22_SUPPORT/_EXTERNAL_DATA/` next to the db (first byte `0x02`). Those external files are where the multi-megabyte photos come from. The `.vcf` export and `--shrink-abbu` read these; the `contacts.json` / `ims/` export only uses the `Images/` files.
     - Image files may not have file extensions.
         - When my script copies an image into `out/`, it appends the file extension for easy viewing.
     - Image files are not just jpgs, but also tiffs.
@@ -168,6 +206,9 @@ An Apple "Contacts Archive" is a directory like `foo.abbu`. I think the `ab` sta
 
 # Warnings / Future Work
 
+- `in/` must contain exactly one `.abbu` file. Combining several archives isn't supported (the same contact appearing in two archives would need merging rules).
+- Running the script overwrites `out/contacts.json`, `out/vcf/` (old `contacts-*.vcf` are removed first), `out/dedupe/contacts-all.vcf` and `out/<name>-small.abbu`.
+- Phone numbers are only normalized in the `.vcf` files, and only for US/Canada-style numbers by default (see "Phone numbers and country codes").
 - There's some sort of "Group" concept in a .abbu file, which I ignore.
 - If you run this program multiple times, you should delete the images out of `ims/` and `ims/orphans/`,
 or else you'll end up with image copies like `foo__2.jpg`, `foo__3.jpg`, etc. This is because my program
@@ -179,3 +220,7 @@ tries not to overwrite image files as it copies them out of the .abbu file.
 - https://justinppearson.com
 - Nov 22, 2022
 
+- Upgrades for python 3, vcf support, normailization, etc
+- Russell Castagnaro @cryptowampum
+- https://russell.castagnaro.com
+- Nov 22, 2026

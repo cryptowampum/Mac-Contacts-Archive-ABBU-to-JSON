@@ -1204663,28 +1204663,6 @@
         ]
     },
     {
-        "uid": "58D53969-9F27-4180-9F9E-246814D4650F",
-        "first": "Paul",
-        "last": "Demick",
-        "organization": "Caring",
-        "phone": [
-            [
-                "",
-                "+1 678-592-6471"
-            ]
-        ]
-    },
-    {
-        "uid": "B7F50163-A222-41CF-9852-FA1262D3B97A",
-        "organization": "Merlin\u2019s Mushrooms",
-        "phone": [
-            [
-                "",
-                "+1 720-409-1781"
-            ]
-        ]
-    },
-    {
         "uid": "724FFA52-F9DE-44F9-8CFC-DDC3AEBBCC3C",
         "ZABCDRECORD.ZCROPRECT": "{{0, 0}, {0, 0}}",
         "first": "SeungWoo",
@@ -1213556,14 +1213534,6 @@
                 "harveyberss@comcast.net"
             ],
             [
-                "",
-                "harveyberss@comcast.net"
-            ],
-            [
-                "Work",
-                "hberss@yahoo.com"
-            ],
-            [
                 "Work",
                 "hberss@yahoo.com"
             ]
@@ -1213577,26 +1213547,6 @@
             [
                 "",
                 "+16786847859"
-            ],
-            [
-                "Mobile",
-                "+14047207691"
-            ],
-            [
-                "",
-                "+16786847859"
-            ],
-            [
-                "Mobile",
-                "+14047207691"
-            ],
-            [
-                "",
-                "+16786847859"
-            ],
-            [
-                "Mobile",
-                "+14047207691"
             ]
         ],
         "ZABCDPOSTALADDRESS.ZIOSLEGACYIDENTIFIER": 14645,
@@ -1313586,9 +1313536,9 @@
         ],
         "ZABCDNOTE.Z_PK": 912,
         "ZABCDNOTE.Z_ENT": 14,
-        "ZABCDNOTE.Z_OPT": 2,
+        "ZABCDNOTE.Z_OPT": 1,
         "ZABCDNOTE.ZCONTACT": 691,
-        "ZABCDNOTE.ZTEXT": "Yahoo! ID: bersch\n\n\nGarage 7017\n",
+        "ZABCDNOTE.ZTEXT": "Yahoo! ID: bersch",
         "phone": [
             [
                 "Mobile",
@@ -1380594,6 +1380544,41 @@
         ]
     },
     {
+        "uid": "52359971-C9FD-4C33-8B1A-491EA824EB2D",
+        "ZABCDRECORD.ZCROPRECT": "{{0, 0}, {0, 0}}",
+        "first": "Russell",
+        "ZABCDRECORD.ZJOBTITLE": "Director - Digital Transformation",
+        "last": "Castagnaro",
+        "organization": "OIT-HQ",
+        "email": [
+            [
+                "",
+                "russell.castagnaro@state.co.us"
+            ]
+        ],
+        "ZABCDNOTE.Z_PK": 1360,
+        "ZABCDNOTE.Z_ENT": 14,
+        "ZABCDNOTE.Z_OPT": 1,
+        "ZABCDNOTE.ZCONTACT": 15625,
+        "ZABCDNOTE.ZTEXT": "Functional Group: CTO - Digital Transformation",
+        "phone": [
+            [
+                "Work",
+                "303.764.7532"
+            ]
+        ],
+        "ZABCDPOSTALADDRESS.ZIOSLEGACYIDENTIFIER": 26176,
+        "address": [
+            [
+                "Work",
+                {
+                    "street": "601 East 18th Ave, 130",
+                    "city": "Denver 80203"
+                }
+            ]
+        ]
+    },
+    {
         "uid": "78D5CFC2-FE4F-4454-B1BE-4E70F4B43313",
         "ZABCDRECORD.ZCROPRECT": "{{0, 0}, {0, 0}}",
         "first": "Mitchell",
@@ -1387554,17 +1387539,6 @@
             [
                 "",
                 "michelle@apexwealthadv.com"
-            ]
-        ]
-    },
-    {
-        "uid": "6A48C5C6-7C1B-46B9-BA5D-3307C953E77E",
-        "first": "Adam",
-        "last": "Seevers",
-        "phone": [
-            [
-                "Compassionate Companions",
-                "+14044082187"
             ]
         ]
     },

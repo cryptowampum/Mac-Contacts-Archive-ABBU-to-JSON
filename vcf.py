@@ -249,8 +249,43 @@ def _fmt_date(d):
     return (f'{y:04d}-{m:02d}-{dd:02d}', False) if y else (f'1604-{m:02d}-{dd:02d}', True)
 
 
-def contact_to_vcard(c, x=None):
-    '''One contact dict (+ its extras dict) as a vCard 3.0 string. Returns (text, has_photo).'''
+_EXT_RE = re.compile(r'\s*(?:x|ext\.?|;)\s*\d+\s*$', re.IGNORECASE)
+
+
+def normalize_phone(value, country_code='1'):
+    '''Return value with the country code added in international form (eg "(503) 318-2547" -> "+15033182547"),
+    so the phone can match incoming calls. Only plain national numbers are touched:
+      - already international ("+...")            -> unchanged
+      - 10 digits, valid NANP area code (2-9...)  -> "+<country_code><digits>"   (only when country_code == '1')
+      - 11 digits starting with the country code  -> "+<digits>"
+    Anything else (7-digit local numbers, short codes, "011"/"00" international prefixes, non-NANP lengths)
+    is returned unchanged rather than guessed at. A trailing extension ("x123", "ext 5", ";702") is kept as is.
+    country_code '' / None disables this entirely.'''
+    if not country_code or not value:
+        return value
+    v = value.strip()
+    if v.startswith('+'):
+        return value
+    m = _EXT_RE.search(v)
+    ext = v[m.start():] if m else ''
+    digits = re.sub(r'\D', '', v[:m.start()] if m else v)
+    if v[:m.start() if m else len(v)].count('+'):
+        return value  # a "+" somewhere other than the start: not a plain national number
+    if country_code == '1':
+        if len(digits) == 11 and digits[0] == '1':
+            digits = digits[1:]
+        if len(digits) == 10 and digits[0] in '23456789':
+            return '+1' + digits + ext
+        return value
+    # Other countries: only handle numbers that already start with the country code.
+    if digits.startswith(country_code) and not digits.startswith('0'):
+        return '+' + digits + ext
+    return value
+
+
+def contact_to_vcard(c, x=None, country_code='1'):
+    '''One contact dict (+ its extras dict) as a vCard 3.0 string. Returns (text, has_photo).
+    Phone numbers are given the +country_code prefix by normalize_phone() (pass '' to leave them as is).'''
     x = x or {}
     first, last, org = c.get('first', ''), c.get('last', ''), c.get('organization', '')
     phones = _dedupe_by(c.get('phone', []), lambda v: _phone_key(v) or v.strip().lower())
@@ -283,7 +318,7 @@ def contact_to_vcard(c, x=None):
         L.append(f"BDAY{';X-APPLE-OMIT-YEAR=1604' if omit else ''}:{s}")
 
     for lab, val in phones:
-        L.append(f'TEL{_tp(lab)}:{_vesc(val)}')
+        L.append(f'TEL{_tp(lab)}:{_vesc(normalize_phone(val, country_code))}')
     for lab, val in emails:
         L.append(f'EMAIL{_tp(lab)}:{_vesc(val)}')
     for lab, val in urls:
@@ -433,7 +468,7 @@ def shrink_extras_photos(cs, extras, max_px, quality):
 
 
 def export_vcf(contacts, outdir, max_per_file=500, extras=None, max_photo_px=0, photo_quality=DEFAULT_QUALITY,
-               single_file=None):
+               single_file=None, country_code='1'):
     '''Write contacts, alphabetized, to outdir/contacts-001-of-NNN.vcf, ... with at most max_per_file each.
     Removes old contacts-*.vcf in outdir first so stale files from earlier runs don't linger.
     If single_file is given (a file name), write all contacts to outdir/single_file instead (no splitting).
@@ -462,7 +497,7 @@ def export_vcf(contacts, outdir, max_per_file=500, extras=None, max_photo_px=0, 
         with open(f, 'w', encoding='utf-8', newline='') as fh:
             for c in chunk:
                 x = extras.get(c['uid'])
-                text, has_photo = contact_to_vcard(c, x)
+                text, has_photo = contact_to_vcard(c, x, country_code)
                 photos += has_photo
                 skipped_photos += bool(x and x.get('photo')) and not has_photo
                 fh.write(text)
